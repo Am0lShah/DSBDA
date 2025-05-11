@@ -1,0 +1,253 @@
+The provided Jupyter notebook (`5.ipynb`) implements a machine learning workflow using Logistic Regression to predict whether a user will purchase a product based on their age and estimated salary. Additionally, it includes a rule-based prediction approach and evaluates its performance. Below is a step-by-step explanation of the code, organized by the cells in the notebook.
+
+---
+
+### **Step 1: Importing Libraries**
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score
+```
+- **Purpose**: Import necessary libraries for data manipulation, visualization, and model evaluation.
+- **Details**:
+  - `numpy`: For numerical operations.
+  - `matplotlib.pyplot`: For plotting visualizations.
+  - `pandas`: For data handling (e.g., reading CSV files and manipulating dataframes).
+  - `sklearn.metrics`: Provides functions to compute confusion matrix and performance metrics (accuracy, precision, recall).
+
+---
+
+### **Step 2: Importing the Dataset**
+```python
+dataset = pd.read_csv("Social_data.csv")
+X = dataset.iloc[:, [2, 3]].values
+y = dataset.iloc[:, 4].values
+```
+- **Purpose**: Load the dataset and extract features and target variables.
+- **Details**:
+  - `pd.read_csv("Social_data.csv")`: Reads the `social_data.csv` file into a pandas DataFrame. The dataset contains columns: `User ID`, `Gender`, `Age`, `EstimatedSalary`, and `Purchased`.
+  - `X = dataset.iloc[:, [2, 3]].values`: Selects columns 2 (`Age`) and 3 (`EstimatedSalary`) as the feature matrix `X`. The `.values` converts the DataFrame to a NumPy array.
+  - `y = dataset.iloc[:, 4].values`: Selects column 4 (`Purchased`) as the target variable `y`, where `0` indicates no purchase and `1` indicates a purchase.
+
+---
+
+### **Step 3: Splitting the Dataset**
+```python
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
+```
+- **Purpose**: Split the dataset into training and testing sets.
+- **Details**:
+  - `train_test_split`: Splits the data into training (75%) and testing (25%) sets, as specified by `test_size=0.25`.
+  - `random_state=0`: Ensures reproducibility by setting a fixed seed for the random split.
+  - Outputs:
+    - `X_train`, `y_train`: Training features and target.
+    - `X_test`, `y_test`: Testing features and target.
+
+---
+
+### **Step 4: Feature Scaling**
+```python
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+```
+- **Purpose**: Standardize the features to have a mean of 0 and a standard deviation of 1.
+- **Details**:
+  - `StandardScaler`: Scales features to normalize their range, which is important for algorithms like Logistic Regression that are sensitive to feature scales.
+  - `sc.fit_transform(X_train)`: Fits the scaler on the training data (computes mean and standard deviation) and transforms `X_train`.
+  - `sc.transform(X_test)`: Applies the same scaling (using the training set’s mean and standard deviation) to `X_test` to avoid data leakage.
+
+---
+
+### **Step 5: Fitting Logistic Regression**
+```python
+from sklearn.linear_model import LogisticRegression
+log_reg = LogisticRegression(random_state=0)
+log_reg.fit(X_train, y_train)
+```
+- **Purpose**: Train a Logistic Regression model on the training data.
+- **Details**:
+  - `LogisticRegression(random_state=0)`: Initializes the Logistic Regression model with a fixed random seed for reproducibility.
+  - `log_reg.fit(X_train, y_train)`: Trains the model using the scaled training features (`X_train`) and target (`y_train`).
+  - The model learns to predict `Purchased` (0 or 1) based on `Age` and `EstimatedSalary`.
+
+---
+
+### **Step 6: Predicting Test Set Results**
+```python
+y_pred = log_reg.predict(X_test)
+```
+- **Purpose**: Use the trained model to predict outcomes for the test set.
+- **Details**:
+  - `log_reg.predict(X_test)`: Generates predictions (`y_pred`) for the test features (`X_test`).
+  - `y_pred` contains binary values (0 or 1) indicating whether the model predicts a purchase.
+
+---
+
+### **Step 7: Creating the Confusion Matrix**
+```python
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_test, y_pred)
+```
+- **Purpose**: Compute the confusion matrix to evaluate the model’s performance on the test set.
+- **Details**:
+  - `confusion_matrix(y_test, y_pred)`: Compares actual test labels (`y_test`) with predicted labels (`y_pred`).
+  - The confusion matrix is a 2x2 array:
+    - `[0,0]`: True Negatives (TN) - Correctly predicted non-purchases.
+    - `[0,1]`: False Positives (FP) - Incorrectly predicted purchases.
+    - `[1,0]`: False Negatives (FN) - Incorrectly predicted non-purchases.
+    - `[1,1]`: True Positives (TP) - Correctly predicted purchases.
+
+---
+
+### **Step 8: Visualizing Test Set Results**
+```python
+from matplotlib.colors import ListedColormap
+X_set, y_set = X_test, y_test
+X1, X2 = np.meshgrid(np.arange(start=X_set[:, 0].min() - 1, stop=X_set[:, 0].max() + 1, step=0.01),
+                     np.arange(start=X_set[:, 1].min() - 1, stop=X_set[:, 1].max() + 1, step=0.01))
+plt.contourf(X1, X2, log_reg.predict(np.array([X1.ravel(), X2.ravel()]).T).reshape(X1.shape),
+             alpha=0.75, cmap=ListedColormap(('red', 'green')))
+plt.xlim(X1.min(), X1.max())
+plt.ylim(X2.min(), X2.max())
+for i, j in enumerate(np.unique(y_set)):
+    plt.scatter(X_set[y_set == j, 0], X_set[y_set == j, 1],
+                c=ListedColormap(('red', 'green'))(i), label=j)
+plt.title('Logistic Regression (Test set)')
+plt.xlabel('Age')
+plt.ylabel('Estimated Salary')
+plt.legend()
+plt.show()
+```
+- **Purpose**: Visualize the decision boundary and test set predictions.
+- **Details**:
+  - **Meshgrid Creation**:
+    - `np.meshgrid`: Creates a grid of points covering the range of `Age` and `EstimatedSalary` (scaled values) with a step size of 0.01.
+    - `X1` and `X2` represent the grid coordinates for `Age` and `EstimatedSalary`, respectively.
+  - **Decision Boundary**:
+    - `log_reg.predict(np.array([X1.ravel(), X2.ravel()]).T)`: Predicts the class for each point in the grid.
+    - `plt.contourf`: Plots the decision boundary, with `red` for class 0 (no purchase) and `green` for class 1 (purchase).
+    - `alpha=0.75`: Sets transparency for the filled regions.
+  - **Scatter Plot**:
+    - The `for` loop scatters the test set points, coloring them based on their actual class (`y_set`).
+    - `ListedColormap(('red', 'green'))`: Assigns red to class 0 and green to class 1.
+  - **Labels and Display**:
+    - Sets the title, axis labels, and legend.
+    - `plt.show()`: Displays the plot, showing the decision boundary and test set points.
+
+---
+
+### **Step 9: Rule-Based Prediction**
+```python
+dataset['Predicted'] = dataset.apply(lambda row: 1 if row['EstimatedSalary'] > 50000 and row['Age'] > 30 else 0, axis=1)
+```
+- **Purpose**: Apply a simple rule-based prediction to the entire dataset.
+- **Details**:
+  - `dataset.apply`: Applies a function to each row of the DataFrame.
+  - **Rule**: Predict `Purchased=1` if `EstimatedSalary > 50000` and `Age > 30`; otherwise, predict `Purchased=0`.
+  - The predictions are stored in a new column `Predicted` in the `dataset` DataFrame.
+  - `axis=1`: Indicates that the function is applied row-wise.
+
+---
+
+### **Step 10: Extract True and Predicted Labels for Rule-Based Model**
+```python
+y_true = dataset['Purchased']
+y_pred = dataset['Predicted']
+```
+- **Purpose**: Extract the actual (`Purchased`) and predicted (`Predicted`) labels for evaluation.
+- **Details**:
+  - `y_true`: Contains the actual `Purchased` values (0 or 1) from the dataset.
+  - `y_pred`: Contains the rule-based predictions (0 or 1) from the `Predicted` column.
+
+---
+
+### **Step 11: Compute Confusion Matrix for Rule-Based Model**
+```python
+tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+```
+- **Purpose**: Compute the confusion matrix for the rule-based predictions.
+- **Details**:
+  - `confusion_matrix(y_true, y_pred)`: Generates the confusion matrix comparing actual (`y_true`) and predicted (`y_pred`) labels.
+  - `.ravel()`: Flattens the 2x2 matrix into a 1D array to extract:
+    - `tn`: True Negatives.
+    - `fp`: False Positives.
+    - `fn`: False Negatives.
+    - `tp`: True Positives.
+
+---
+
+### **Step 12: Calculate Performance Metrics**
+```python
+accuracy = accuracy_score(y_true, y_pred)
+precision = precision_score(y_true, y_pred, zero_division=0)
+recall = recall_score(y_true, y_pred, zero_division=0)
+error_rate = 1 - accuracy
+```
+- **Purpose**: Compute evaluation metrics for the rule-based model.
+- **Details**:
+  - `accuracy_score`: Calculates accuracy as `(TP + TN) / (TP + TN + FP + FN)`.
+  - `precision_score`: Calculates precision as `TP / (TP + FP)`. `zero_division=0` handles cases where the denominator is zero.
+  - `recall_score`: Calculates recall as `TP / (TP + FN)`. `zero_division=0` handles edge cases.
+  - `error_rate`: Computed as `1 - accuracy`, representing the proportion of incorrect predictions.
+
+---
+
+### **Step 13: Print Results**
+```python
+print("Confusion Matrix:")
+print(f"TP: {tp}")
+print(f"TN: {tn}")
+print(f"FP: {fp}")
+print(f"FN: {fn}\n")
+
+print("Metrics:")
+print(f"Accuracy: {accuracy * 100:.2f}%")
+print(f"Error Rate: {error_rate * 100:.2f}%")
+print(f"Precision: {precision * 100:.2f}%")
+print(f"Recall: {recall * 100:.2f}%")
+```
+- **Purpose**: Display the confusion matrix and performance metrics for the rule-based model.
+- **Details**:
+  - **Confusion Matrix**:
+    - `TP: 93`: 93 correct predictions of purchases.
+    - `TN: 144`: 144 correct predictions of non-purchases.
+    - `FP: 113`: 113 incorrect predictions of purchases.
+    - `FN: 50`: 50 incorrect predictions of non-purchases.
+  - **Metrics**:
+    - `Accuracy: 59.25%`: 59.25% of predictions were correct.
+    - `Error Rate: 40.75%`: 40.75% of predictions were incorrect.
+    - `Precision: 45.15%`: 45.15% of predicted purchases were correct.
+    - `Recall: 65.03%`: 65.03% of actual purchases were correctly predicted.
+
+---
+
+### **Summary of Workflow**
+1. **Data Preparation**:
+   - Loaded the dataset and selected `Age` and `EstimatedSalary` as features, with `Purchased` as the target.
+   - Split the data into training (75%) and testing (25%) sets.
+   - Scaled the features using `StandardScaler`.
+
+2. **Logistic Regression Model**:
+   - Trained a Logistic Regression model on the training data.
+   - Made predictions on the test set and computed the confusion matrix (not printed in the notebook).
+   - Visualized the decision boundary and test set predictions.
+
+3. **Rule-Based Model**:
+   - Applied a rule: Predict `Purchased=1` if `EstimatedSalary > 50000` and `Age > 30`, else `Purchased=0`.
+   - Evaluated the rule-based predictions using a confusion matrix and metrics (accuracy, precision, recall, error rate).
+
+4. **Output**:
+   - The rule-based model achieved moderate performance, with an accuracy of 59.25%, precision of 45.15%, and recall of 65.03%.
+
+---
+
+### **Key Observations**
+- The Logistic Regression model uses machine learning to learn patterns from the data, while the rule-based model relies on a manually defined threshold.
+- The rule-based model’s performance (59.25% accuracy) suggests that the rule (`EstimatedSalary > 50000` and `Age > 30`) is not highly effective, as it results in many false positives (113) and false negatives (50).
+- The visualization of the Logistic Regression model shows how it separates the data into two regions, which may capture more complex patterns than the simple rule.
+
+This notebook demonstrates both a machine learning approach (Logistic Regression) and a heuristic approach (rule-based prediction) for binary classification, along with evaluation techniques.
