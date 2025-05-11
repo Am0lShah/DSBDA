@@ -1,0 +1,212 @@
+Great! Let's walk through the notebook **"Descriptive Statistics.ipynb"** step-by-step. The code primarily demonstrates descriptive statistical analysis using two datasets: `Iris.csv` and `supermarket_sales.csv`.
+
+---
+
+### 🔹 **Step 1: Importing Libraries**
+
+```python
+import pandas as pd
+import numpy as np
+```
+
+* **pandas** is used for handling datasets in DataFrame format.
+* **numpy** is used for numerical computations.
+
+---
+
+### 🔹 **Step 2: Loading the Iris Dataset**
+
+```python
+iris_data = pd.read_csv("Iris.csv")
+```
+
+* The Iris dataset is loaded using `pd.read_csv()`. It contains data about flower measurements and their species.
+
+---
+
+### 🔹 **Step 3: Viewing the Dataset**
+
+```python
+iris_data.head()
+```
+
+* Displays the first 5 rows of the Iris dataset to get an overview.
+
+---
+
+### 🔹 **Step 4: Getting Dataset Information**
+
+```python
+iris_data.info()
+```
+
+* Prints a concise summary including column names, non-null counts, and data types.
+
+---
+
+### 🔹 **Step 5: Summary Statistics of Iris Dataset**
+
+```python
+iris_data.describe()
+```
+
+* Displays statistical measures like:
+
+  * `count`, `mean`, `std` (standard deviation)
+  * `min`, `25%`, `50%`, `75%`, `max`
+
+---
+
+### 🔹 **Step 6: Central Tendency - Mean**
+
+```python
+iris_data.mean(numeric_only=True)
+```
+
+* Calculates **mean** (average) of numeric columns.
+
+---
+
+### 🔹 **Step 7: Central Tendency - Median**
+
+```python
+iris_data.median(numeric_only=True)
+```
+
+* Calculates the **median** (middle value) for numeric columns.
+
+---
+
+### 🔹 **Step 8: Mode**
+
+```python
+iris_data.mode(numeric_only=True)
+```
+
+* Calculates the **mode** (most frequent value) for numeric columns.
+
+---
+
+### 🔹 **Step 9: Variability - Standard Deviation**
+
+```python
+iris_data.std(numeric_only=True)
+```
+
+* Measures the **spread** of data using standard deviation.
+
+---
+
+### 🔹 **Step 10: Variability - Variance**
+
+```python
+iris_data.var(numeric_only=True)
+```
+
+* Calculates **variance**, another measure of spread (std²).
+
+---
+
+### 🔹 **Step 11: Range**
+
+```python
+iris_data.max(numeric_only=True) - iris_data.min(numeric_only=True)
+```
+
+* Computes **range** by subtracting the minimum from the maximum value.
+
+---
+
+### 🔹 **Step 12: Loading Supermarket Sales Dataset**
+
+```python
+sales_data = pd.read_csv("supermarket_sales.csv")
+```
+
+* Loads the **Supermarket Sales** dataset containing sales transaction records.
+
+---
+
+### 🔹 **Step 13: Viewing the Sales Dataset**
+
+```python
+sales_data.head()
+```
+
+* Shows the first 5 records for a quick preview.
+
+---
+
+### 🔹 **Step 14: Descriptive Statistics of Sales Data**
+
+```python
+sales_data.describe()
+```
+
+* Provides summary statistics for the numeric columns.
+
+---
+
+### 🔹 **Step 15: Sales Data Mean**
+
+```python
+sales_data.mean(numeric_only=True)
+```
+
+* Mean values for numeric columns in the sales dataset.
+
+---
+
+### 🔹 **Step 16: Median of Sales Data**
+
+```python
+sales_data.median(numeric_only=True)
+```
+
+* Median values for numeric fields.
+
+---
+
+### 🔹 **Step 17: Mode of Sales Data**
+
+```python
+sales_data.mode(numeric_only=True)
+```
+
+* Mode values of the numeric columns.
+
+---
+
+### 🔹 **Step 18: Standard Deviation (Sales Data)**
+
+```python
+sales_data.std(numeric_only=True)
+```
+
+* Measures standard deviation for each numeric column.
+
+---
+
+### 🔹 **Step 19: Variance of Sales Data**
+
+```python
+sales_data.var(numeric_only=True)
+```
+
+* Variance of numeric columns.
+
+---
+
+### 🔹 **Step 20: Range for Sales Data**
+
+```python
+sales_data.max(numeric_only=True) - sales_data.min(numeric_only=True)
+```
+
+* Computes range for numeric columns.
+
+---
+
+This notebook clearly demonstrates how to perform **descriptive statistical analysis** on different datasets using Python.
+
+Would you like me to generate **visualizations (graphs/charts)** for this data or extend the analysis further?
