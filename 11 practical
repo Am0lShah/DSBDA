@@ -1,0 +1,265 @@
+The code provided in the `Dsbda practical output 11.pdf` document is a Hadoop MapReduce program written in Java to perform a word count operation on a given text input. This program counts the frequency of each word in the input text using the Hadoop framework, which is designed for distributed processing of large datasets across a cluster of computers. Below is a step-by-step explanation of the code, referencing the provided input and output, and addressing any discrepancies in the OCR content (e.g., `FileInputStream` and `FileOutputStream` should be `FileInputFormat` and `FileOutputFormat`).
+
+---
+
+### Overview of the Program
+The program implements a classic word count example in Hadoop MapReduce, where:
+- **Input**: Text files containing words (e.g., "hello world" and "hello hadoop").
+- **Processing**: The program splits the text into words, counts their occurrences, and aggregates the counts.
+- **Output**: A list of words with their respective counts (e.g., "hadoop 1", "hello 2", "world 1").
+- **Components**:
+  - **Mapper**: Splits input lines into words and emits each word with a count of 1.
+  - **Reducer**: Sums the counts for each word.
+  - **Driver**: Configures and runs the MapReduce job.
+
+The code consists of three main classes within the `WordCount` class:
+1. `WordCount` (driver class, implementing `Tool` for configuration and job execution).
+2. `TokenizerMapper` (Mapper class to tokenize input text).
+3. `SumReducer` (Reducer class to aggregate word counts).
+
+---
+
+### Step-by-Step Explanation
+
+#### 1. **Imports and Class Definition**
+```java
+import java.io.IOException;
+import java.util.StringTokenizer;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+
+public class WordCount extends Configured implements Tool {
+```
+- **Imports**:
+  - Hadoop libraries for MapReduce (`Job`, `Mapper`, `Reducer`), I/O types (`Text`, `IntWritable`, `LongWritable`), and file handling (`Path`, `FileInputFormat`, `FileOutputFormat`).
+  - `StringTokenizer` for splitting text into words.
+  - `Tool` and `Configured` for running the program with command-line arguments and configuration.
+- **Class**: `WordCount` extends `Configured` (to access Hadoop configuration) and implements `Tool` (to handle command-line arguments via `ToolRunner`).
+
+---
+
+#### 2. **Main Method**
+```java
+public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new WordCount(), args);
+    System.exit(res);
+}
+```
+- **Purpose**: Entry point of the program.
+- **Functionality**:
+  - `ToolRunner.run` executes the `run` method of the `WordCount` class, passing a new `Configuration` object and command-line arguments (`args`).
+  - `args` typically contains input and output paths (e.g., `hdfs://input_path` and `hdfs://output_path`).
+  - The exit code (`res`) determines whether the job succeeded (0) or failed (non-zero).
+
+---
+
+#### 3. **Run Method (Driver Configuration)**
+```java
+public int run(String[] args) throws Exception {
+    Configuration conf = getConf();
+    Job job = Job.getInstance(conf, "WordCount");
+    job.setJarByClass(WordCount.class);
+    // Input and Output paths
+    FileInputStream.setInputPaths(job, new Path(args[0]));
+    FileOutputStream.setOutputPath(job, new Path(args[1]));
+    // Mapper and Reducer classes
+    job.setMapperClass(TokenizerMapper.class);
+    job.setCombinerClass(SumReducer.class);
+    job.setReducerClass(SumReducer.class);
+    // Output types
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(IntWritable.class);
+    // Input and Output format
+    job.setInputFormatClass(TextInputFormat.class);
+    job.setOutputFormatClass(TextOutputFormat.class);
+    return job.waitForCompletion(true) ? 0 : 1;
+}
+```
+- **Purpose**: Configures and submits the MapReduce job.
+- **Steps**:
+  1. **Configuration**:
+     - `getConf()` retrieves the Hadoop configuration (from `Configured`).
+     - `Job.getInstance(conf, "WordCount")` creates a new job named "WordCount".
+  2. **Job Setup**:
+     - `setJarByClass(WordCount.class)`: Specifies the main class for the JAR file, helping Hadoop locate the job classes.
+     - **Input/Output Paths**:
+       - **OCR Error**: The lines `FileInputStream.setInputPaths` and `FileOutputStream.setOutputPath` are incorrect. They should be:
+         ```java
+         FileInputFormat.setInputPaths(job, new Path(args[0]));
+         FileOutputFormat.setOutputPath(job, new Path(args[1]));
+         ```
+       - These lines set the input directory (`args[0]`) and output directory (`args[1]`) in HDFS.
+  3. **Mapper and Reducer**:
+     - `setMapperClass(TokenizerMapper.class)`: Specifies the `TokenizerMapper` class for the map phase.
+     - `setCombinerClass(SumReducer.class)`: Uses `SumReducer` as a combiner to reduce network traffic by performing partial aggregation on the mapper's output.
+     - `setReducerClass(SumReducer.class)`: Specifies `SumReducer` for the reduce phase.
+  4. **Output Types**:
+     - `setOutputKeyClass(Text.class)`: The output key is a word (as a `Text` object).
+     - `setOutputValueClass(IntWritable.class)`: The output value is a count (as an `IntWritable`).
+  5. **Input/Output Formats**:
+     - `setInputFormatClass(TextInputFormat.class)`: Reads input as text, where each line is a record.
+     - `setOutputFormatClass(TextOutputFormat.class)`: Writes output as text, with key-value pairs separated by tabs.
+  6. **Job Execution**:
+     - `job.waitForCompletion(true)`: Submits the job and waits for completion. The `true` parameter enables verbose logging.
+     - Returns `0` if successful, `1` if failed.
+
+---
+
+#### 4. **TokenizerMapper Class**
+```java
+public static class TokenizerMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+    private final static IntWritable one = new IntWritable(1);
+    private final Text word = new Text();
+    public void map(LongWritable key, Text value, Context context)
+            throws IOException, InterruptedException {
+        StringTokenizer tokenizer = new StringTokenizer(value.toString());
+        while (tokenizer.hasMoreTokens()) {
+            word.set(tokenizer.nextToken());
+            context.write(word, one);
+        }
+    }
+}
+```
+- **Purpose**: Processes input text line by line, splitting each line into words and emitting each word with a count of 1.
+- **Components**:
+  - **Inheritance**: Extends `Mapper<LongWritable, Text, Text, IntWritable>`:
+    - **Input**: Key is `LongWritable` (line offset in the file), value is `Text` (line content).
+    - **Output**: Key is `Text` (word), value is `IntWritable` (count).
+  - **Fields**:
+    - `one`: A constant `IntWritable` set to 1, reused for efficiency.
+    - `word`: A `Text` object to store each word, reused to avoid creating new objects.
+  - **Map Method**:
+    - **Input**: `key` (line offset, ignored), `value` (line text), `context` (for emitting output).
+    - **Process**:
+      - `value.toString()` converts the `Text` to a Java `String`.
+      - `StringTokenizer` splits the string into tokens (words) using default delimiters (space, tab, newline, etc.).
+      - For each token:
+        - `word.set(tokenizer.nextToken())` sets the `Text` object to the current word.
+        - `context.write(word, one)` emits the pair `(word, 1)`.
+- **Example**:
+  - Input line: "hello world"
+  - Output: `(hello, 1)`, `(world, 1)`
+  - Input line: "hello hadoop"
+  - Output: `(hello, 1)`, `(hadoop, 1)`
+
+---
+
+#### 5. **SumReducer Class**
+```java
+public static class SumReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+    public void reduce(Text key, Iterable<IntWritable> values, Context context)
+            throws IOException, InterruptedException {
+        int sum = 0;
+        for (IntWritable value : values) {
+            sum += value.get();
+        }
+        context.write(key, new IntWritable(sum));
+    }
+}
+```
+- **Purpose**: Aggregates the counts for each word by summing the values associated with the same key.
+- **Components**:
+  - **Inheritance**: Extends `Reducer<Text, IntWritable, Text, IntWritable>`:
+    - **Input**: Key is `Text` (word), values are `Iterable<IntWritable>` (list of counts).
+    - **Output**: Key is `Text` (word), value is `IntWritable` (total count).
+  - **Reduce Method**:
+    - **Input**: `key` (word), `values` (list of counts, e.g., `[1, 1]` for "hello"), `context` (for emitting output).
+    - **Process**:
+      - Initializes `sum = 0`.
+      - Iterates over `values`, adding each count (`value.get()`) to `sum`.
+      - Emits the pair `(key, sum)` using `context.write`.
+- **Example**:
+  - Input: `hello, [1, 1]` (from two occurrences of "hello")
+  - Output: `(hello, 2)`
+  - Input: `hadoop, [1]`
+  - Output: `(hadoop, 1)`
+  - Input: `world, [1]`
+  - Output: `(world, 1)`
+
+---
+
+#### 6. **Combiner**
+- The `SumReducer` class is also used as a combiner (`job.setCombinerClass(SumReducer.class)`).
+- **Purpose**: Performs local aggregation on the mapper’s output before sending data to the reducer, reducing network traffic.
+- **Functionality**: Same as the reducer, it sums counts for each word on the mapper’s node.
+- **Example**:
+  - Mapper output on one node: `(hello, 1)`, `(hello, 1)`, `(world, 1)`
+  - Combiner output: `(hello, 2)`, `(world, 1)`
+
+---
+
+#### 7. **Input and Output Example**
+- **Input** (from the PDF):
+  ```
+  hello world
+  hello hadoop
+  ```
+- **Map Phase**:
+  - Line 1: "hello world"
+    - Outputs: `(hello, 1)`, `(world, 1)`
+  - Line 2: "hello hadoop"
+    - Outputs: `(hello, 1)`, `(hadoop, 1)`
+- **Shuffle and Sort**:
+  - Hadoop groups by key: `hello: [1, 1]`, `hadoop: [1]`, `world: [1]`
+- **Reduce Phase**:
+  - `hello: [1, 1]` → `(hello, 2)`
+  - `hadoop: [1]` → `(hadoop, 1)`
+  - `world: [1]` → `(world, 1)`
+- **Output** (from the PDF):
+  ```
+  hadoop 1
+  hello 2
+  world 1
+  ```
+  - Note: The output order is not guaranteed due to Hadoop’s distributed nature, but the counts are correct.
+
+---
+
+### Execution Flow
+1. **Run the Program**:
+   - Command: `hadoop jar WordCount.jar WordCount /input /output`
+   - `/input` contains the text files (e.g., with "hello world" and "hello hadoop").
+   - `/output` is the HDFS directory where results are written.
+2. **Hadoop Framework**:
+   - **Job Submission**: The driver submits the job to the Hadoop cluster.
+   - **Map Phase**: Mappers process input splits (small chunks of the input file), emitting `(word, 1)` pairs.
+   - **Combiner Phase**: Local aggregation reduces data sent over the network.
+   - **Shuffle and Sort**: Hadoop groups mapper outputs by key and sorts them.
+   - **Reduce Phase**: Reducers sum the counts for each word.
+   - **Output**: Results are written to `/output` in HDFS as text files (e.g., `part-r-00000`).
+
+---
+
+### Corrections and Notes
+- **OCR Errors**:
+  - `FileInputStream.setInputPaths` should be `FileInputFormat.setInputPaths`.
+  - `FileOutputStream.setOutputPath` should be `FileOutputFormat.setOutputPath`.
+  - These are critical for correct Hadoop I/O operations.
+- **Assumptions**:
+  - The input is case-sensitive (e.g., "hello" and "Hello" are different words).
+  - `StringTokenizer` uses default delimiters, which may not handle punctuation (e.g., "hello," is treated as "hello,").
+- **Improvements**:
+  - Add text preprocessing (e.g., convert to lowercase, remove punctuation) for robustness.
+  - Handle edge cases (e.g., empty files, non-text input).
+
+---
+
+### Connection to the Iris Notebook
+The `WordCount` program is unrelated to the Iris dataset analysis in the previous notebook (`10.ipynb`). While the Iris notebook focuses on data exploration with Pandas and visualizations, the `WordCount` program demonstrates distributed data processing with Hadoop. Both are data analysis tasks but target different paradigms:
+- **Iris Notebook**: Local, small-scale data analysis with Python for statistical insights.
+- **WordCount**: Scalable, distributed processing for large text datasets.
+
+If you have specific questions about integrating these analyses or need further details on either task, let me know!
