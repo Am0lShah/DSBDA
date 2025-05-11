@@ -1,0 +1,438 @@
+The document `DSBDA practical 13.pdf` contains a Hadoop MapReduce program written in Java to process weather data, specifically calculating average temperature, dew point, and wind speed for different time sections of a month for each weather station. The program consists of two MapReduce jobs:
+1. **Job 1**: Groups weather data by station, year-month, and time section (based on hour), computing averages for temperature, dew point, and wind speed.
+2. **Job 2**: Aggregates the sectioned data into a single vector per station and year-month, combining all sections.
+
+The code uses the older Hadoop MapReduce API (`mapred` package) instead of the newer `mapreduce` package, and it contains several OCR errors and incomplete sections. Below is a step-by-step explanation of the code, addressing errors, analyzing the input/output, and connecting it to the previous context (Iris dataset, WordCount, and SalesDriver programs).
+
+---
+
+### Overview of the Program
+- **Purpose**: Process weather data to compute average weather attributes (temperature, dew point, wind speed) per station, year-month, and time section (Job 1), then aggregate these into a single vector per station and year-month (Job 2).
+- **Input**: A text file with weather records, each containing fields like station ID, timestamp, temperature, dew point, wind speed, etc., separated by commas or spaces.
+- **Output**:
+  - **Job 1**: Key-value pairs with `station_yearmonth_sectionno` as the key and a vector of average temperature, dew point, and wind speed as the value.
+  - **Job 2**: Key-value pairs with `station_yearmonth` as the key and a vector including section numbers and averages.
+- **Components**:
+  - **Job 1**:
+    - `MapClass`: Parses input lines, extracts station ID, timestamp, and attributes, and emits keys with section numbers.
+    - `Reduce`: Computes averages for each key.
+  - **Job 2**:
+    - `MapClassForJob2`: Strips section numbers from keys and includes them in values.
+    - `ReduceForJob2`: Concatenates values into a single vector.
+  - **Driver**: Configures and runs both jobs sequentially.
+
+---
+
+### Step-by-Step Explanation
+
+#### 1. **Imports and Class Definition**
+```java
+package com.org.vasanth.weather;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileOutputFormat;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.KeyValueTextInputFormat;
+import org.apache.hadoop.mapred.MapReduceBase;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reducer;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+
+public class Weather extends Configured implements Tool {
+    final long DEFAULT_SPLIT_SIZE = 128 * 1024 * 1024;
+```
+- **Imports**:
+  - Uses the older `mapred` package (e.g., `JobConf`, `OutputCollector`) instead of `mapreduce`.
+  - Includes `StringTokenizer` for parsing, `Text` and `LongWritable` for Hadoop I/O, and `Tool` for command-line argument handling.
+- **Class**: `Weather` extends `Configured` and implements `Tool` for Hadoop configuration and job execution.
+- **Constant**: `DEFAULT_SPLIT_SIZE` (128 MB) is used to adjust input split size.
+- **OCR Error**: `import java.util.mam;` is likely a typo for `import java.util.Map;`, but it’s not used in the provided code.
+
+---
+
+#### 2. **MapClass (Job 1 Mapper)**
+```java
+public static class MapClass extends MapReduceBase implements Mapper<LongWritable, Text, Text, Text> {
+    private Text word = new Text();
+    private Text values = new Text();
+    public void map(LongWritable key, Text value, OutputCollector<Text, Text> output, Reporter reporter) throws IOException {
+        String line = value.toString();
+        StringTokenizer itr = new StringTokenizer(line);
+        int counter = 0;
+        String key_out = null;
+        String value_str = null;
+        boolean skip = false;
+        loop: while (itr.hasMoreTokens() && counter < 13) {
+            String str = itr.nextToken();
+            switch (counter) {
+                case 0: // Station ID
+                    key_out = str;
+                    if (str.contains("STN")) { // Ignore header rows
+                        skip = true;
+                        break loop;
+                    }
+                    break;
+                case 2: // Timestamp
+                    int hour = Integer.valueOf(str.substring(str.lastIndexOf("...") + 1, str.length()));
+                    str = str.substring(4, str.lastIndexOf("...") - 2);
+                    if (hour > 4 && hour <= 10) {
+                        str = str.concat("_section1");
+                    } else if (hour > 10 && hour <= 16) {
+                        str = str.concat("_section2");
+                    } else if (hour > 16 && hour <= 22) {
+                        str = str.concat("_section3");
+                    } else {
+                        str = str.concat("_section4");
+                    }
+                    key_out = key_out.concat("...").concat(str);
+                    break;
+                case 3: // Temperature
+                    if (str.equals("9999.9")) { // Missing value
+                        skip = true;
+                        break loop;
+                    } else {
+                        value_str = str.concat(" ");
+                        break;
+                    }
+                case 4: // Dew point
+                    if (str.equals("9999.9")) {
+                        skip = true;
+                        break loop;
+                    } else {
+                        value_str = value_str.concat(str).concat(" ");
+                        break;
+                    }
+                case 12: // Wind speed
+                    if (str.equals("999.9")) {
+                        skip = true;
+                        break loop;
+                    } else {
+                        value_str = value_str.concat(str).concat(" ");
+                        break;
+                    }
+                default:
+                    break;
+            }
+            counter++;
+        }
+        if (!skip) {
+            word.set(key_out);
+            values.set(value_str);
+            output.collect(word, values);
+        }
+    }
+}
+```
+- **Purpose**: Parses each line of weather data, extracts station ID, timestamp, and attributes (temperature, dew point, wind speed), and assigns a section number based on the hour.
+- **Components**:
+  - **Inheritance**: Implements `Mapper<LongWritable, Text, Text, Text>`:
+    - **Input**: Key is `LongWritable` (line offset), value is `Text` (line content).
+    - **Output**: Key is `Text` (e.g., `station_yearmonth_sectionno`), value is `Text` (space-separated temperature, dew point, wind speed).
+  - **Fields**:
+    - `word`: Stores the output key.
+    - `values`: Stores the output value (attribute vector).
+  - **Map Method**:
+    - **Parsing**:
+      - `StringTokenizer` splits the line on default delimiters (space, comma, etc.).
+      - Processes up to 13 fields, checking specific indices:
+        - **0**: Station ID (skips if contains "STN", indicating a header).
+        - **2**: Timestamp (e.g., `20060201_1...hour`).
+          - Extracts hour and year-month, assigns section number (1–4) based on hour ranges:
+            - 5–10: `_section1`
+            - 11–16: `_section2`
+            - 17–22: `_section3`
+            - 23–4: `_section4`
+          - Constructs key as `station...yearmonth_sectionX`.
+        - **3**: Temperature (skips if `9999.9`, indicating missing data).
+        - **4**: Dew point (skips if `9999.9`).
+        - **12**: Wind speed (skips if `999.9`).
+      - Builds `value_str` as a space-separated string of attributes.
+    - **Output**:
+      - If not skipped, emits `(key_out, value_str)` (e.g., `(station_200602_section1, "54.74 33.0 10.7")`).
+- **Example** (based on sample input):
+  - Input: `690190,13910,20060201_1...1,54.74,33.0,...,10.7,...`
+  - Hour: 1 (maps to `_section4`)
+  - Output: `(690190...200602_section4, "54.74 33.0 10.7")`
+- **Issues**:
+  - Timestamp parsing (`lastIndexOf("...")`) assumes a specific format, which may fail if inconsistent.
+  - Missing value checks are hardcoded (`9999.9`, `999.9`).
+  - `StringTokenizer` may not handle commas correctly (input sample uses commas).
+
+---
+
+#### 3. **Reduce (Job 1 Reducer)**
+```java
+public static class Reduce extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
+    private Text value_out_text = new Text();
+    public void reduce(Text key, Iterator<Text> values, OutputCollector<Text, Text> output, Reporter reporter) throws IOException {
+        double sum_temp = 0;
+        double sum_dew = 0;
+        double sum_wind = 0;
+        int count = 0;
+        while (values.hasNext()) {
+            String str = values.next().toString();
+            StringTokenizer itr = new StringTokenizer(str);
+            int count_vector = 0;
+            while (itr.hasMoreTokens()) {
+                String nextToken = itr.nextToken(" ");
+                if (count_vector == 0) {
+                    sum_temp += Double.valueOf(nextToken);
+                }
+                if (count_vector == 1) {
+                    sum_dew += Double.valueOf(nextToken);
+                }
+                if (count_vector == 2) {
+                    sum_wind += Double.valueOf(nextToken);
+                }
+                count_vector++;
+            }
+            count++;
+        }
+        double avgiOS = sum_temp / count;
+        double avg_dew = sum_dew / count;
+        double avg_wind = sum_wind / count;
+        String value_out = String.valueOf(avgiOS).concat(" ").concat(String.valueOf(avg_dew)).concat(" ").concat(String.valueOf(avg_wind));
+        value_out_text.set(value_out);
+        output.collect(key, value_out_text);
+    }
+}
+```
+- **Purpose**: Computes the average temperature, dew point, and wind speed for each `station_yearmonth_sectionno`.
+- **Components**:
+  - **Inheritance**: Implements `Reducer<Text, Text, Text, Text>`:
+    - **Input**: Key is `Text` (e.g., `station_yearmonth_sectionno`), values are `Iterator<Text>` (attribute vectors).
+    - **Output**: Key is `Text`, value is `Text` (average attributes).
+  - **Reduce Method**:
+    - **Aggregation**:
+      - Iterates over values (each a string like `"54.74 33.0 10.7"`).
+      - Uses `StringTokenizer` to split into temperature, dew point, and wind speed.
+      - Accumulates sums (`sum_temp`, `sum_dew`, `sum_wind`) and counts occurrences (`count`).
+    - **Averaging**:
+      - Computes averages: `sum_temp / count`, etc.
+      - Note: `avgiOS` is a typo for `avg_temp`.
+    - **Output**:
+      - Concatenates averages into a space-separated string.
+      - Emits `(key, averages)` (e.g., `(station_200602_section4, "54.74 33.0 10.7")`).
+- **OCR Error**:
+  - `avgiOS` should be `avg_temp`.
+  - Debug print statement has syntax errors: `" count is "+count" sum of temp is "...` should be `" count is "+count+" sum of temp is "...`.
+- **Example**:
+  - Input: `station_200602_section4, ["54.74 33.0 10.7", "55.0 34.0 11.0"]`
+  - Sums: `sum_temp = 109.74`, `sum_dew = 67.0`, `sum_wind = 21.7`, `count = 2`
+  - Output: `(station_200602_section4, "54.87 33.5 10.85")`
+
+---
+
+#### 4. **MapClassForJob2 (Job 2 Mapper)**
+```java
+public static class MapClassForJob2 extends MapReduceBase implements Mapper<Text, Text, Text, Text> {
+    private Text key_text = new Text();
+    private Text value_text = new Text();
+    public void map(Text key, Text value, OutputCollector<Text, Text> output, Reporter reporter) throws IOException {
+        String str = key.toString();
+        String station = str.substring(str.lastIndexOf("_") + 1, str.length());
+        str = str.substring(0, str.lastIndexOf("_"));
+        key_text.set(str);
+        StringTokenizer itr = new StringTokenizer(value.toString());
+        String str_out = station.concat("<");
+        while (itr.hasMoreTokens()) {
+            String nextToken = itr.nextToken(" ");
+            str_out = str_out.concat(nextToken);
+            str_out = (itr.hasMoreTokens()) ? str_out.concat(" ") : str_out.concat(">");
+        }
+        value_text.set(str_out);
+        output.collect(key_text, value_text);
+    }
+}
+```
+- **Purpose**: Transforms Job 1 output by removing section numbers from keys and including them in values.
+- **Components**:
+  - **Inheritance**: Implements `Mapper<Text, Text, Text, Text>`:
+    - **Input**: Key is `Text` (e.g., `station_yearmonth_sectionno`), value is `Text` (averages).
+    - **Output**: Key is `Text` (e.g., `station_yearmonth`), value is `Text` (section + averages).
+  - **Map Method**:
+    - **Key Processing**:
+      - Extracts section number (e.g., `section1`) and strips it from the key.
+      - Sets new key as `station_yearmonth`.
+    - **Value Processing**:
+      - Appends section number and averages, enclosed in `<` and `>`.
+    - **Output**:
+      - Emits `(station_yearmonth, section<averages>)`.
+- **OCR Error**:
+  - `var _out.concat(">")` is incomplete and incorrect; should be part of `str_out.concat(">")`.
+  - Double `@Override` is redundant.
+- **Example**:
+  - Input: `(station_200602_section4, "54.74 33.0 10.7")`
+  - Output: `(station_200602, "section4<54.74 33.0 10.7>")`
+
+---
+
+#### 5. **ReduceForJob2 (Job 2 Reducer)**
+```java
+public static class ReduceForJob2 extends MapReduceBase implements Reducer<Text, Text, Text, Text> {
+    private Text value_out_text = new Text();
+    public void reduce(Text key, Iterator<Text> values, OutputCollector<Text, Text> output, Reporter reporter) throws IOException {
+        String value_out = "";
+        while (values.hasNext()) {
+            value_out = value_out.concat(values.next().toString()).concat(" ");
+        }
+        value_out_text.set(value_out);
+        output.collect(key, value_out_text);
+    }
+}
+```
+- **Purpose**: Concatenates all section vectors for a `station_yearmonth` into a single string.
+- **Components**:
+  - **Inheritance**: Implements `Reducer<Text, Text, Text, Text>`:
+    - **Input**: Key is `Text` (e.g., `station_yearmonth`), values are `Iterator<Text>` (section vectors).
+    - **Output**: Key is `Text`, value is `Text` (concatenated vectors).
+  - **Reduce Method**:
+    - Concatenates all values with spaces.
+    - Emits `(key, concatenated_values)`.
+- **Example**:
+  - Input: `station_200602, ["section1<50.0 30.0 8.0>", "section4<54.74 33.0 10.7>"]`
+  - Output: `(station_200602, "section1<50.0 30.0 8.0> section4<54.74 33.0 10.7> ")`
+
+---
+
+#### 6. **Driver (Run Method)**
+```java
+public int run(String[] args) throws Exception {
+    Configuration config = getConf();
+    JobConf conf = new JobConf(config, Weather.class);
+    conf.setJobName("Weather Job1");
+    conf.setOutputKeyClass(Text.class);
+    conf.setOutputValueClass(Text.class);
+    conf.setMapOutputKeyClass(Text.class);
+    conf.setMapOutputValueClass(Text.class);
+    conf.setMapperClass(MapClass.class);
+    conf.setReducerClass(Reduce.class);
+    List<String> other_args = new ArrayList<String>();
+    for (int i = 0; i < args.length; ++i) {
+        try {
+            if ("-m".equals(args[i])) {
+                conf.setNumMapTasks(Integer.parseInt(args[++i]));
+            } else if ("-r".equals(args[i])) {
+                conf.setNumReduceTasks(Integer.parseInt(args[++i]));
+            } else {
+                other_args.add(args[i]);
+            }
+        } catch (NumberFormatException except) {
+            System.out.println("ERROR: Integer expected instead of " + args[i]);
+            return printUsage();
+        } catch (ArrayIndexOutOfBoundsException except) {
+            System.out.println("ERROR: Required parameter missing from " + args[i-1]);
+            return printUsage();
+        }
+    }
+    FileInputFormat.setInputPaths(conf, other_args.get(0));
+    FileOutputFormat.setOutputPath(conf, new Path(other_args.get(1)));
+    JobClient.runJob(conf);
+    JobConf conf2 = new JobConf(config, Weather.class);
+    conf2.setJobName("Weather Job2");
+    conf2.setOutputKeyClass(Text.class);
+    conf2.setOutputValueClass(Text.class);
+    conf2.setInputFormat(KeyValueTextInputFormat.class);
+    conf2.setMapOutputKeyClass(Text.class);
+    conf2.setMapOutputValueClass(Text.class);
+    conf2.setMapperClass(MapClassForJob2.class);
+    conf2.setReducerClass(ReduceForJob2.class);
+    FileInputFormat.setInputPaths(conf2, new Path(other_args.get(1)));
+    FileOutputFormat.setOutputPath(conf2, new Path(other_args.get(2)));
+    JobClient.runJob(conf2);
+    return 0;
+}
+```
+- **Purpose**: Configures and runs two MapReduce jobs.
+- **Components**:
+  - **Job 1**:
+    - Configures mapper (`MapClass`), reducer (`Reduce`), and I/O types (`Text`).
+    - Input: `other_args.get(0)` (weather data file).
+    - Output: `other_args.get(1)` (intermediate results).
+  - **Job 2**:
+    - Uses `KeyValueTextInputFormat` to read Job 1’s output.
+    - Configures mapper (`MapClassForJob2`), reducer (`ReduceForJob2`).
+    - Input: Job 1’s output (`other_args.get(1)`).
+    - Output: `other_args.get(2)` (final results).
+  - **Argument Parsing**:
+    - Supports `-m` (number of mappers) and `-r` (number of reducers).
+    - Expects three paths: input, Job 1 output, Job 2 output.
+- **OCR Errors**:
+  - Commented-out split size configuration references `FileInputStream.SPLIT_MAXSIZE`, which should be `FileInputFormat.SPLIT_MAXSIZE`.
+  - Argument size check is commented out, risking errors if fewer than three paths are provided.
+
+---
+
+#### 7. **Main Method**
+```java
+public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new Weather(), args);
+    System.exit(res);
+}
+```
+- **Purpose**: Entry point, runs the `Weather` class via `ToolRunner`.
+
+---
+
+#### 8. **Input and Output**
+- **Sample Input** (from page 8):
+  ```
+  690190,13910,20060201_1,54.74,33.0,1006.3,943.9,15.0,10.7,22.0,28.9,0.00
+  ```
+  - Fields: `station_id,wmo_id,timestamp,temperature,dew_point,...,wind_speed,...`
+- **Job 1 Output**:
+  - Example: `(690190...200602_section4, "54.74 33.0 10.7")`
+- **Job 2 Output**:
+  - Example: `(690190...200602, "section1<50.0 30.0 8.0> section4<54.74 33.0 10.7> ")`
+- **Issues**:
+  - The provided output format doesn’t match Job 2’s expected output, suggesting the sample may be raw input or incomplete.
+
+---
+
+### Connection to Previous Context
+- **Iris Notebook (10.ipynb)**: Focused on local statistical analysis of structured data (CSV) using Python/Pandas.
+- **WordCount (11.pdf)**: Counted word frequencies in unstructured text using Hadoop’s `mapreduce` API.
+- **SalesDriver (12.pdf)**: Counted sales per country from semi-structured logs using `mapreduce`.
+- **Weather (13.pdf)**:
+  - Processes structured weather data with complex parsing and two jobs.
+  - Uses older `mapred` API, unlike the newer `mapreduce` in previous programs.
+  - Handles time-based segmentation and vector aggregation, more complex than simple counting.
+- **Progression**:
+  - From local analysis (Iris) to distributed counting (WordCount, SalesDriver) to multi-job processing of structured data (Weather).
+  - Increasing complexity in data parsing and output formatting.
+
+---
+
+### Corrections and Notes
+- **OCR Errors**:
+  - `java.util.mam` → `java.util.Map`.
+  - `OutputCollector` should be imported as `org.apache.hadoop.mapred.OutputCollector`.
+  - `avgiOS` → `avg_temp`.
+  - `FileInputStream.SPLIT_MAXSIZE` → `FileInputFormat.SPLIT_MAXSIZE`.
+- **Issues**:
+  - Input parsing assumes specific formats (e.g., `...` in timestamps), which may fail.
+  - No combiner, potentially increasing shuffle costs.
+  - Incomplete code sections (e.g., commented-out parts, missing error handling).
+- **Improvements**:
+  - Use `mapreduce` API for consistency with modern Hadoop.
+  - Add robust input validation and error handling.
+  - Use a combiner for Job 1 to reduce data transfer.
+
+---
+
+### Conclusion
+The `Weather` program processes weather data in two MapReduce jobs, computing sectioned averages and aggregating them into vectors. Despite OCR errors and incomplete sections, the logic is clear for parsing, segmenting, and averaging weather attributes. It extends the distributed processing theme from WordCount and SalesDriver, applying it to more complex data.
+
+If you need visualizations (e.g., Recharts plots of averages), further code corrections, or integration with previous tasks, let me know!
