@@ -1,0 +1,255 @@
+The document `Dsbda practical 12 output.pdf` contains a Hadoop MapReduce program written in Java to count sales transactions per country based on a log file. The program consists of three components: `SalesMapper`, `SalesReducer`, and `SalesDriver`. The input is a text file (`Log.txt`) containing sales records in the format `Country-Product`, and the output is the number of sales transactions per country. Below is a step-by-step explanation of the code, addressing OCR errors, analyzing the input and output, and connecting it to the previous context (Iris dataset and WordCount program).
+
+---
+
+### Overview of the Program
+The program processes a log file to count the number of sales transactions per country using Hadoop MapReduce:
+- **Input**: A text file (`Log.txt`) with lines like `USA-Product1`, where each line represents a sale with a country and product.
+- **Processing**: The program extracts the country from each line, counts occurrences, and aggregates them.
+- **Output**: A list of countries with their total sales counts (e.g., `India 3`, `UK 1`, `USA 2`).
+- **Components**:
+  - **Mapper**: Extracts the country from each line and emits it with a count of 1.
+  - **Reducer**: Sums the counts for each country.
+  - **Driver**: Configures and runs the MapReduce job.
+
+---
+
+### Step-by-Step Explanation of the Code
+
+#### 1. **SalesMapper.java**
+```java
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class SalesMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+    private final static IntWritable one = new IntWritable(1);
+    private Text country = new Text();
+
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        String[] fields = value.toString().split(" - ");
+        if (fields.length > 0) {
+            country.set(fields[0].trim());
+            context.write(country, one);
+        }
+    }
+}
+```
+- **Purpose**: Processes each line of the input file, extracts the country, and emits `(country, 1)` for each sale.
+- **Components**:
+  - **Inheritance**: Extends `Mapper<LongWritable, Text, Text, IntWritable>`:
+    - **Input**: Key is `LongWritable` (line offset, ignored), value is `Text` (line content, e.g., `USA-Product1`).
+    - **Output**: Key is `Text` (country), value is `IntWritable` (count of 1).
+  - **Fields**:
+    - `one`: A constant `IntWritable` set to 1, reused for efficiency.
+    - `country`: A `Text` object to store the country name, reused to avoid creating new objects.
+  - **Map Method**:
+    - **Input**: `key` (line offset), `value` (line text), `context` (for emitting output).
+    - **Process**:
+      - `value.toString()` converts the `Text` to a Java `String`.
+      - `split(" - ")` splits the line on the delimiter `" - "` to separate country and product (e.g., `USA-Product1` → `["USA", "Product1"]`).
+      - `if (fields.length > 0)` checks if the split produced at least one field (ensures the line is not empty).
+      - `fields[0].trim()` extracts the country and removes leading/trailing whitespace.
+      - `country.set(fields[0].trim())` sets the `Text` object to the country.
+      - `context.write(country, one)` emits `(country, 1)`.
+  - **OCR Error**:
+    - The line `country.set(inventories[0].trim())` is incorrect. It should be `country.set(fields[0].trim())`. The variable `inventories` is a typo and does not exist; `fields` is the array from the `split` operation.
+  - **Example**:
+    - Input line: `USA-Product1`
+    - Split: `["USA", "Product1"]`
+    - Output: `(USA, 1)`
+    - Input line: `India-Product2`
+    - Output: `(India, 1)`
+
+---
+
+#### 2. **SalesReducer.java**
+```java
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class SalesReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+    public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+        int sum = 0;
+        for (IntWritable val : values) {
+            sum += val.get();
+        }
+        context.write(key, new IntWritable(sum));
+    }
+}
+```
+- **Purpose**: Aggregates the counts for each country by summing the values associated with the same key.
+- **Components**:
+  - **Inheritance**: Extends `Reducer<Text, IntWritable, Text, IntWritable>`:
+    - **Input**: Key is `Text` (country), values are `Iterable<IntWritable>` (list of counts, e.g., `[1, 1]` for `USA`).
+    - **Output**: Key is `Text` (country), value is `IntWritable` (total count).
+  - **Reduce Method**:
+    - **Input**: `key` (country), `values` (list of counts), `context` (for emitting output).
+    - **Process**:
+      - Initializes `sum = 0`.
+      - Iterates over `values`, adding each count (`val.get()`) to `sum`.
+      - Emits `(key, sum)` using `context.write`.
+  - **Example**:
+    - Input: `India, [1, 1, 1]` (three sales in India)
+    - Output: `(India, 3)`
+    - Input: `USA, [1, 1]`
+    - Output: `(USA, 2)`
+    - Input: `UK, [1]`
+    - Output: `(UK, 1)`
+
+---
+
+#### 3. **SalesDriver.java**
+```java
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class SalesDriver {
+    public static void main(String[] args) throws Exception {
+        if (args.length != 2) {
+            System.err.println("Usage: SalesDriver <input path> <output path>");
+            System.exit(-1);
+        }
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Sales Per Country");
+        job.setJarByClass(SalesDriver.class);
+        job.setMapperClass(SalesMapper.class);
+        job.setReducerClass(SalesReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+        FileInputStream.addInputPath(job, new Path(args[0]));
+        FileOutputStream.setOutputPath(job, new Path(args[1]));
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+- **Purpose**: Configures and submits the MapReduce job to count sales per country.
+- **Components**:
+  - **Main Method**:
+    - Checks if exactly two command-line arguments are provided (input and output paths).
+    - If not, prints usage instructions and exits with code `-1`.
+  - **Job Configuration**:
+    - `Configuration conf = new Configuration()`: Creates a Hadoop configuration.
+    - `Job job = Job.getInstance(conf, "Sales Per Country")`: Creates a job named "Sales Per Country".
+    - `setJarByClass(SalesDriver.class)`: Specifies the main class for the JAR file.
+    - `setMapperClass(SalesMapper.class)`: Sets the mapper.
+    - `setReducerClass(SalesReducer.class)`: Sets the reducer.
+    - `setOutputKeyClass(Text.class)`: Output key is `Text` (country).
+    - `setOutputValueClass(IntWritable.class)`: Output value is `IntWritable` (count).
+  - **OCR Errors**:
+    - `FileInputStream.addInputPath` should be `FileInputFormat.addInputPath`.
+    - `FileOutputStream.setOutputPath` should be `FileOutputFormat.setOutputPath`.
+    - These methods set the input directory (`args[0]`) and output directory (`args[1]`) in HDFS.
+  - **Job Execution**:
+    - `job.waitForCompletion(true)`: Submits the job and waits for completion, with verbose logging.
+    - Exits with `0` (success) or `1` (failure).
+- **Note**: Unlike the `WordCount` program, no combiner is specified, so no local aggregation occurs between the mapper and reducer.
+
+---
+
+#### 4. **Input and Output Example**
+- **Input** (`Log.txt`):
+  ```
+  USA-Product1
+  India-Product2
+  USA-Product3
+  India-Product1
+  India-Product3
+  UK-Product2
+  ```
+- **Map Phase**:
+  - Line 1: `USA-Product1` → `(USA, 1)`
+  - Line 2: `India-Product2` → `(India, 1)`
+  - Line 3: `USA-Product3` → `(USA, 1)`
+  - Line 4: `India-Product1` → `(India, 1)`
+  - Line 5: `India-Product3` → `(India, 1)`
+  - Line 6: `UK-Product2` → `(UK, 1)`
+- **Shuffle and Sort**:
+  - Hadoop groups by key:
+    - `India: [1, 1, 1]`
+    - `UK: [1]`
+    - `USA: [1, 1]`
+- **Reduce Phase**:
+  - `India: [1, 1, 1]` → `(India, 3)`
+  - `UK: [1]` → `(UK, 1)`
+  - `USA: [1, 1]` → `(USA, 2)`
+- **Output**:
+  ```
+  India 3
+  UK 1
+  USA 2
+  ```
+  - The output matches the expected counts, with countries sorted alphabetically (typical Hadoop behavior).
+
+---
+
+### Execution Flow
+1. **Run the Program**:
+   - Command: `hadoop jar SalesDriver.jar SalesDriver /input /output`
+   - `/input` contains `Log.txt`.
+   - `/output` is the HDFS directory for results.
+2. **Hadoop Framework**:
+   - **Job Submission**: The driver submits the job.
+   - **Map Phase**: Mappers process input lines, emitting `(country, 1)` pairs.
+   - **Shuffle and Sort**: Hadoop groups mapper outputs by country and sorts them.
+   - **Reduce Phase**: Reducers sum the counts for each country.
+   - **Output**: Results are written to `/output` in HDFS (e.g., `part-r-00000`).
+
+---
+
+### Corrections and Notes
+- **OCR Errors**:
+  - In `SalesMapper`: `country.set(inventories[0].trim())` should be `country.set(fields[0].trim())`.
+  - In `SalesDriver`:
+    - `FileInputStream.addInputPath` should be `FileInputFormat.addInputPath`.
+    - `FileOutputStream.setOutputPath` should be `FileOutputFormat.setOutputPath`.
+  - These errors are critical for correct Hadoop I/O operations.
+- **Assumptions**:
+  - The input format is consistent (`Country-Product` with `" - "` as the delimiter).
+  - The country name is always the first field after splitting.
+  - Case-sensitive country names (e.g., `USA` and `usa` are different).
+- **Potential Issues**:
+  - If a line lacks the `" - "` delimiter, `fields[0]` may contain invalid data. Additional validation could check `fields.length >= 2`.
+  - No combiner is used, which could increase network traffic for large datasets.
+- **Improvements**:
+  - Add a combiner (e.g., `job.setCombinerClass(SalesReducer.class)`) to reduce data transfer.
+  - Preprocess country names (e.g., convert to lowercase, validate format).
+  - Handle malformed lines (e.g., missing delimiter).
+
+---
+
+### Connection to Previous Context
+The `SalesDriver` program is similar to the `WordCount` program (from `Dsbda practical output 11.pdf`) in that both use Hadoop MapReduce to count frequencies:
+- **WordCount**: Counts word frequencies in text, splitting lines into words using `StringTokenizer`.
+- **SalesDriver**: Counts sales per country, splitting lines by `" - "` to extract countries.
+- **Similarities**:
+  - Both use a mapper to emit `(key, 1)` pairs and a reducer to sum counts.
+  - Both output `Text` keys and `IntWritable` values.
+  - Both process text input and produce frequency counts.
+- **Differences**:
+  - `WordCount` uses `StringTokenizer` for general-purpose word splitting, while `SalesDriver` uses a specific delimiter (`" - "`).
+  - `WordCount` includes a combiner, while `SalesDriver` does not.
+  - `SalesDriver` has stricter input validation (checks `fields.length > 0`).
+
+The `SalesDriver` program is unrelated to the Iris dataset analysis (`10.ipynb`), which focused on statistical exploration of flower measurements using Python and Pandas. However, all three tasks demonstrate data processing:
+- **Iris Notebook**: Local, small-scale data analysis with visualizations.
+- **WordCount**: Distributed text processing for word frequencies.
+- **SalesDriver**: Distributed processing for sales transaction counts.
+
+The progression from Iris to WordCount to SalesDriver reflects a shift from local data analysis to scalable, distributed processing, with increasing complexity in input parsing (from structured CSV to semi-structured text).
+
+---
+
+### Conclusion
+The `SalesDriver` program successfully counts sales transactions per country using Hadoop MapReduce. It processes a log file with country-product pairs, emitting accurate counts as shown in the output (`India 3`, `UK 1`, `USA 2`). Despite OCR errors in the provided document, the corrected code aligns with standard Hadoop practices. The program could be enhanced with a combiner and robust input validation for production use.
+
+If you need further analysis, visualizations of the sales data (e.g., using Recharts as in the Iris report), or integration with the previous tasks, please let me know!
