@@ -1,0 +1,227 @@
+### Data Science, Big Data, and Data Learning (DSBDL) - Question Bank Answers
+
+**1) What is Pandas library in Python?**
+Pandas is an open-source Python library used for data manipulation and analysis. It provides data structures like Series and DataFrame, which are highly efficient for handling structured data.
+
+**2) List some key features of Pandas.**
+
+* Labeled data structure (Series and DataFrame)
+* Handling of missing data
+* Data alignment and integrated handling of time series
+* Powerful group-by functionality
+* Reading and writing data to different formats (CSV, Excel, SQL, etc.)
+
+**3) What is Numpy Library in Python?**
+NumPy is a core library for numerical and scientific computing. It provides support for large multi-dimensional arrays and matrices and includes mathematical functions to operate on these arrays.
+
+**4) What is Matplotlib library?**
+Matplotlib is a plotting library used to create static, animated, and interactive visualizations in Python. It is widely used for generating plots, graphs, and figures.
+
+**5) What is difference between Seaborn and Matplotlib?**
+
+* Matplotlib is a low-level library that gives detailed control of plot elements.
+* Seaborn is a high-level library built on top of Matplotlib; it simplifies the creation of visually appealing statistical plots.
+
+**6) Are Sklearn and Scikit-learn the same library? What is its use in Data Science?**
+Yes, Sklearn is the abbreviation of Scikit-learn. It is used for implementing machine learning algorithms like classification, regression, clustering, etc.
+
+**7) What functions come in Pandas and Numpy library?**
+Pandas: `read_csv()`, `DataFrame()`, `groupby()`, `merge()`, `dropna()`, `fillna()`
+NumPy: `array()`, `mean()`, `std()`, `arange()`, `linspace()`, `reshape()`
+
+**8) What is DataFrame in Python?**
+A DataFrame is a two-dimensional labeled data structure with columns of potentially different types, similar to a spreadsheet or SQL table.
+
+**9) How to find duplicates in Python? (Python Command)**
+
+```python
+import pandas as pd
+df.duplicated()
+```
+
+**10) What is use of describe command?**
+The `describe()` function provides summary statistics of numerical columns, such as count, mean, std deviation, min, max, and quartiles.
+
+**11) Which Naive Bayes classification algorithms are used in Python?**
+
+* GaussianNB
+* MultinomialNB
+* BernoulliNB (from sklearn.naive\_bayes)
+
+**12) What is significance of Confusion Matrix?**
+It is used to evaluate the performance of a classification algorithm. It shows the true positives, false positives, true negatives, and false negatives.
+
+**13) What is TP, TN, FP, FN in Confusion Matrix?**
+
+* TP (True Positive): Correctly predicted positive values
+* TN (True Negative): Correctly predicted negative values
+* FP (False Positive): Incorrectly predicted positive values
+* FN (False Negative): Incorrectly predicted negative values
+
+**14) What is Recall?**
+Recall = TP / (TP + FN)
+It measures the ability of a model to detect relevant instances.
+
+**15) What is Precision?**
+Precision = TP / (TP + FP)
+It measures the accuracy of the positive predictions.
+
+**16) What is F1 Score?**
+F1 Score is the harmonic mean of Precision and Recall:
+F1 = 2 \* (Precision \* Recall) / (Precision + Recall)
+
+**17) What is the need for data visualization in data science?**
+It helps understand the data better, identify trends, outliers, and patterns, and communicate insights effectively.
+
+**18) What is an outlier?**
+An outlier is a data point that differs significantly from other observations.
+
+**19) When to use histogram and pie chart?**
+
+* Histogram: To show frequency distribution
+* Pie Chart: To show proportional data (parts of a whole)
+
+**20) What are the challenges in Big Data visualization?**
+
+* Volume and velocity of data
+* Real-time processing
+* Scalability
+* Interactivity and readability
+
+**21) What is joint plot, dist plot?**
+
+* Joint plot: Combines scatter plot with histograms (Seaborn)
+* Dist plot: Shows the distribution of a single variable (Seaborn)
+
+**22) What are tools used for data visualization?**
+
+* Matplotlib
+* Seaborn
+* Plotly
+* Tableau
+* Power BI
+
+**23) What is data wrangling?**
+The process of cleaning, structuring, and enriching raw data into a desired format for analysis.
+
+**24) What is data transformation?**
+It refers to the process of converting data from one format or structure into another.
+
+**25) What is use of StandardScaler function in Python?**
+It standardizes features by removing the mean and scaling to unit variance.
+
+**26) What is Hadoop?**
+An open-source framework for storing and processing large datasets in a distributed computing environment.
+
+**27) What is HDFS and MapReduce?**
+
+* HDFS: Hadoop Distributed File System for storing large files.
+* MapReduce: Programming model for processing big data in parallel.
+
+**28) What are the components of Hadoop Ecosystem?**
+
+* HDFS
+* MapReduce
+* YARN
+* Hive
+* Pig
+* HBase
+* Sqoop
+* Flume
+
+**29) What is Scala?**
+Scala is a high-level programming language that combines object-oriented and functional programming.
+
+**30) What are features of Scala?**
+
+* Statically typed
+* Functional programming support
+* Interoperability with Java
+* Concise syntax
+* Immutable collections
+
+**31) How is Scala different from Java?**
+
+* Scala supports both OOP and functional paradigms
+* More concise syntax
+* Supports immutability and higher-order functions
+
+**32) List applications of Scala.**
+
+* Data Engineering with Apache Spark
+* Web applications
+* Distributed systems
+* Backend services
+
+**33) What is Data Science?**
+It is a field that combines statistics, computer science, and domain knowledge to extract insights from data.
+
+**34) What is Big Data?**
+Big Data refers to extremely large datasets that may be analyzed computationally to reveal patterns and trends.
+
+**35) What are the characteristics of Big Data?**
+
+* Volume
+* Velocity
+* Variety
+* Veracity
+* Value
+
+**36) List phases in Data Science Life Cycle.**
+
+* Problem Definition
+* Data Collection
+* Data Cleaning
+* Exploratory Data Analysis
+* Modeling
+* Evaluation
+* Deployment
+
+**37) What is Central Tendency?**
+It refers to the central or typical value in a dataset (mean, median, mode).
+
+**38) What is Dispersion?**
+It refers to the spread of data values (range, variance, standard deviation).
+
+**39) What is mean, mode, mid-range, median? Calculate for 10,22,13,10,21,43,77,21,10:**
+
+* Mean = (10+22+13+10+21+43+77+21+10)/9 = 25.2
+* Mode = 10
+* Mid-range = (Min+Max)/2 = (10+77)/2 = 43.5
+* Median = 21
+
+**40) What is Variance?**
+Variance measures how far data points are spread out from the mean.
+
+**41) What is Standard Deviation?**
+It is the square root of variance; it shows the average distance of each data point from the mean.
+
+**42) What is posterior probability in Naive Bayes theorem?**
+The probability of a class given the predictor (P(Class|Data)).
+
+**43) What is likelihood probability in Naive Bayes theorem?**
+The probability of data given a class (P(Data|Class)).
+
+**44) How to deal with missing values?**
+
+* Remove rows/columns
+* Replace with mean/median/mode
+* Use interpolation or predictive modeling
+
+**45) What is NLTK?**
+Natural Language Toolkit: A Python library for working with human language data (text processing).
+
+**46) What is Tokenization in NLP?**
+It is the process of breaking text into smaller units like words or sentences.
+
+**47) What is Stemming?**
+It reduces words to their root form by removing suffixes (e.g., playing → play).
+
+**48) What is Lemmatization?**
+It reduces words to their base form using vocabulary and morphological analysis.
+
+**49) What is Corpus in NLP?**
+A large and structured set of texts used for training NLP models.
+
+**50) What is Spark framework?**
+Apache Spark is a unified analytics engine for large-scale data processing, with built-in modules for streaming, SQL, machine learning, and graph processing.
