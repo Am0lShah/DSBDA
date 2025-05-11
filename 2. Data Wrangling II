@@ -1,0 +1,180 @@
+Let's go through the code in the notebook `2.ipynb` step-by-step, using the data from `acdemic_data.csv`.
+
+---
+
+### ✅ **Step 1: Importing Required Libraries**
+
+```python
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+```
+
+* `pandas` is used for data manipulation and analysis.
+* `seaborn` is used for statistical data visualization.
+* `matplotlib.pyplot` is used to create static, animated, and interactive visualizations.
+
+---
+
+### ✅ **Step 2: Loading the Dataset**
+
+```python
+df = pd.read_csv("acdemic_data.csv")
+```
+
+* Reads the CSV file (`acdemic_data.csv`) into a Pandas DataFrame named `df`.
+
+---
+
+### ✅ **Step 3: Displaying the First Few Rows**
+
+```python
+df.head()
+```
+
+* Shows the first five rows of the dataset to get an overview of the data.
+
+---
+
+### ✅ **Step 4: Getting Dataset Information**
+
+```python
+df.info()
+```
+
+* Displays:
+
+  * Number of entries
+  * Column names
+  * Non-null values
+  * Data types (int, float, object, etc.)
+
+---
+
+### ✅ **Step 5: Statistical Summary**
+
+```python
+df.describe()
+```
+
+* Provides summary statistics like:
+
+  * Count
+  * Mean
+  * Standard deviation
+  * Min, Max, and quartiles
+* Useful for numerical columns only.
+
+---
+
+### ✅ **Step 6: Checking for Missing Values**
+
+```python
+df.isnull().sum()
+```
+
+* Shows the total number of missing (NaN) values in each column.
+
+---
+
+### ✅ **Step 7: Correlation Matrix**
+
+```python
+df.corr()
+```
+
+* Computes the Pearson correlation between numeric features.
+* Values close to 1 indicate strong positive correlation; close to -1, strong negative correlation.
+
+---
+
+### ✅ **Step 8: Heatmap for Correlation**
+
+```python
+sns.heatmap(df.corr(), annot=True, cmap="coolwarm")
+plt.show()
+```
+
+* Creates a heatmap to visually display the correlation matrix.
+* `annot=True` displays the correlation values inside the squares.
+* `cmap="coolwarm"` adds color contrast for easier interpretation.
+
+---
+
+### ✅ **Step 9: Pairplot**
+
+```python
+sns.pairplot(df)
+plt.show()
+```
+
+* Plots pairwise relationships between all numerical columns.
+* Useful to detect trends, patterns, or relationships.
+
+---
+
+### ✅ **Step 10: Distribution Plot**
+
+```python
+sns.histplot(df["GPA"], kde=True)
+plt.title("GPA Distribution")
+plt.show()
+```
+
+* Creates a histogram with a Kernel Density Estimate (KDE) for the "GPA" column.
+* Helps in understanding the distribution (normal, skewed, etc.) of GPA.
+
+---
+
+### ✅ **Step 11: Boxplot for GPA by Gender**
+
+```python
+sns.boxplot(x="Gender", y="GPA", data=df)
+plt.title("GPA by Gender")
+plt.show()
+```
+
+* Compares the GPA distribution across genders.
+* Shows median, interquartile range, and outliers.
+
+---
+
+### ✅ **Step 12: Count Plot for Gender**
+
+```python
+sns.countplot(x="Gender", data=df)
+plt.title("Gender Count")
+plt.show()
+```
+
+* Displays the count of male and female students.
+
+---
+
+### ✅ **Step 13: Scatter Plot of Study Hours vs GPA**
+
+```python
+sns.scatterplot(x="StudyHours", y="GPA", data=df)
+plt.title("Study Hours vs GPA")
+plt.show()
+```
+
+* Examines the relationship between study hours and GPA.
+* Each point is a student.
+
+---
+
+### ✅ **Step 14: Line Plot for Attendance vs GPA**
+
+```python
+sns.lineplot(x="Attendance", y="GPA", data=df)
+plt.title("Attendance vs GPA")
+plt.show()
+```
+
+* Displays the trend of GPA as attendance changes.
+
+---
+
+Would you like a summary of insights found from this data or help interpreting any specific graph?
+
